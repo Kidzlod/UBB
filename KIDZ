@@ -1,9 +1,17 @@
 -- Script Name: UBB | LONG HOANG (Mobile-PC)
 local player = game:GetService("Players").LocalPlayer
 local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local rs = game:GetService("ReplicatedStorage").UIRemotes
 
--- Ảnh đã chèn sẵn Asset ID
+-- Ảnh hiển thị
 local ImageId = "rbxassetid://77752807374564"
+
+-- Âm thanh click
+local ClickSound = Instance.new("Sound")
+ClickSound.SoundId = "rbxassetid://12222005" -- Âm click Roblox cơ bản
+ClickSound.Volume = 0.5
+ClickSound.Parent = player:WaitForChild("PlayerGui")
 
 -- Tạo GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -33,7 +41,7 @@ local MenuFrame = Instance.new("Frame")
 MenuFrame.Parent = ScreenGui
 MenuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MenuFrame.BackgroundTransparency = 1
-MenuFrame.Size = UDim2.new(0, 220, 0, 320)
+MenuFrame.Size = UDim2.new(0, 220, 0, 340)
 MenuFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
 MenuFrame.Visible = false
 MenuFrame.BorderSizePixel = 0
@@ -52,7 +60,7 @@ local ScrollFrame = Instance.new("ScrollingFrame")
 ScrollFrame.Parent = MenuFrame
 ScrollFrame.BackgroundTransparency = 1
 ScrollFrame.Size = UDim2.new(1,0,1,0)
-ScrollFrame.CanvasSize = UDim2.new(0,0,0,800)
+ScrollFrame.CanvasSize = UDim2.new(0,0,0,850)
 ScrollFrame.ScrollBarThickness = 4
 ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0,170,255)
 
@@ -77,7 +85,18 @@ TitleLabel.TextColor3 = Color3.fromRGB(0, 170, 255)
 TitleLabel.TextScaled = true
 TitleLabel.TextWrapped = true
 
--- Hàm tạo nút đẹp + hiệu ứng giữ
+-- Hàm rung điện thoại (nếu có hỗ trợ)
+local function Vibrate()
+    pcall(function()
+        if UIS.VibrationMotor then
+            UIS:SetVibrationMotor("Large", 1)
+            task.wait(0.05)
+            UIS:SetVibrationMotor("Large", 0)
+        end
+    end)
+end
+
+-- Hàm tạo nút đẹp + hiệu ứng
 local function CreateButton(parent, text, posY, callback)
     local Button = Instance.new("TextButton")
     Button.Parent = parent
@@ -110,6 +129,8 @@ local function CreateButton(parent, text, posY, callback)
 
     -- Khi click
     Button.MouseButton1Click:Connect(function()
+        ClickSound:Play()
+        Vibrate()
         callback()
         -- Auto-hide menu sau khi bấm
         TweenService:Create(MenuFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
@@ -121,45 +142,39 @@ local function CreateButton(parent, text, posY, callback)
 end
 
 -- Danh sách nút
-local rs = game:GetService("ReplicatedStorage").UIRemotes
 local Buttons = {
     {Name="UTTVM[GP]", Code=function()
         rs.Craft:FireServer("Upgraded Giant Screenman",{Coins=1})
     end},
-
     {Name="G4.0[GP]", Code=function()
         local shards = player:WaitForChild("Shards")
         rs.Evolve:FireServer("GManBathroom",0.1,shards)
         rs.Evolve:FireServer("GManBathroom2",0.1,shards)
         rs.Evolve:FireServer("GManBathroom3",0.1,shards)
     end},
-
     {Name="X18", Code=function()
         rs.Craft:FireServer("X18GMan",{Coins=1})
     end},
-
     {Name="JUGGY", Code=function()
         rs.Craft:FireServer("AstroJuggernaut",{Coins=1})
     end},
-
     {Name="MAFIA[GIANT]", Code=function()
         local shards = player:WaitForChild("Shards")
         rs.Evolve:FireServer("MafiaBathroomV2",0.1,shards)
     end},
-
     {Name="EMPEROR", Code=function()
         rs.Craft:FireServer("BathroomEmperorGiant",{Coins=1})
     end},
-
     {Name="UTCM[GP]", Code=function()
         rs.Craft:FireServer("Upgraded Giant Lensman",{Coins=1})
     end},
-
+    {Name="UTSM", Code=function()
+        rs.Craft:FireServer("Upgraded Giant Soundman",{Coins=1})
+    end},
     {Name="FULL UPG UTCM", Code=function()
         local ids = {"100","101","102","103","104","105","106","107","108"}
         for _,id in ipairs(ids) do
-            local args = {"Coins", 1, "Deduct", "skillTree", id}
-            rs["_statChange_"]:FireServer(unpack(args))
+            rs["_statChange_"]:FireServer("Coins",1,"Deduct","skillTree",id)
             task.wait(0.1)
         end
     end},
@@ -184,40 +199,4 @@ OpenButton.MouseButton1Click:Connect(function()
         task.wait(0.3)
         MenuFrame.Visible = false
     end
-end)
-        MenuFrame.Visible = true
-        TweenService:Create(MenuFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {BackgroundTransparency = 0.2}):Play()
-    else
-        TweenService:Create(MenuFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {BackgroundTransparency = 1}):Play()
-        task.wait(0.3)
-        MenuFrame.Visible = false
-    end
-end)
-
--- UTTVM[GP]
-GPButton.MouseButton1Click:Connect(function()
-    local args = { "Upgraded Giant Screenman", { Coins = 1 } }
-    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Craft"):FireServer(unpack(args))
-end)
-
--- G4.0[GP]
-G4Button.MouseButton1Click:Connect(function()
-    local shards = player:WaitForChild("Shards")
-    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Evolve"):FireServer("GManBathroom", 0.1, shards)
-    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Evolve"):FireServer("GManBathroom2", 0.1, shards)
-    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Evolve"):FireServer("GManBathroom3", 0.1, shards)
-end)
-
--- X18
-X18Button.MouseButton1Click:Connect(function()
-    local args = { "X18GMan", { Coins = 1 } }
-    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Craft"):FireServer(unpack(args))
-end)
-
--- JUGGY
-JuggyButton.MouseButton1Click:Connect(function()
-    local args = { "AstroJuggernaut", { Coins = 1000 } }
-    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Craft"):FireServer(unpack(args))
 end)
