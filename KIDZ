@@ -1,13 +1,16 @@
--- Script Name: UBB | LONG HOANG (Mobile Pro UI v8)
+-- Script Name: UBB | LONG HOANG (Mobile-PC)
 local player = game:GetService("Players").LocalPlayer
 local TweenService = game:GetService("TweenService")
 
--- Create ScreenGui
+-- Ảnh đã chèn sẵn Asset ID
+local ImageId = "rbxassetid://77752807374564"
+
+-- Tạo GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Floating Circle Button
+-- Nút mở menu
 local OpenButton = Instance.new("TextButton")
 OpenButton.Parent = ScreenGui
 OpenButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
@@ -21,7 +24,6 @@ OpenButton.Active = true
 OpenButton.Draggable = true
 OpenButton.BorderSizePixel = 0
 
--- Bo góc tròn
 local UICornerOpen = Instance.new("UICorner")
 UICornerOpen.CornerRadius = UDim.new(1,0)
 UICornerOpen.Parent = OpenButton
@@ -31,50 +33,64 @@ local MenuFrame = Instance.new("Frame")
 MenuFrame.Parent = ScreenGui
 MenuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MenuFrame.BackgroundTransparency = 1
-MenuFrame.Size = UDim2.new(0, 200, 0, 280) -- tăng chiều cao cho 4 nút
-MenuFrame.Position = UDim2.new(0.05, 0, 0.45, 0)
+MenuFrame.Size = UDim2.new(0, 220, 0, 320)
+MenuFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
 MenuFrame.Visible = false
-MenuFrame.Active = true
-MenuFrame.Draggable = true
 MenuFrame.BorderSizePixel = 0
 
--- Bo góc menu
 local UICornerFrame = Instance.new("UICorner")
 UICornerFrame.CornerRadius = UDim.new(0,12)
 UICornerFrame.Parent = MenuFrame
 
--- Viền sáng
 local UIStrokeFrame = Instance.new("UIStroke")
 UIStrokeFrame.Parent = MenuFrame
 UIStrokeFrame.Color = Color3.fromRGB(0,170,255)
 UIStrokeFrame.Thickness = 1
 
+-- ScrollFrame
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Parent = MenuFrame
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.Size = UDim2.new(1,0,1,0)
+ScrollFrame.CanvasSize = UDim2.new(0,0,0,800)
+ScrollFrame.ScrollBarThickness = 4
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0,170,255)
+
+-- Image Display
+local ImageLabel = Instance.new("ImageLabel")
+ImageLabel.Parent = ScrollFrame
+ImageLabel.BackgroundTransparency = 1
+ImageLabel.Size = UDim2.new(1,0,0,100)
+ImageLabel.Position = UDim2.new(0,0,0,0)
+ImageLabel.Image = ImageId
+ImageLabel.ScaleType = Enum.ScaleType.Fit
+
 -- Script Name Label
 local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Parent = MenuFrame
+TitleLabel.Parent = ScrollFrame
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Size = UDim2.new(1, 0, 0.18, 0)
-TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.Size = UDim2.new(1, 0, 0, 40)
+TitleLabel.Position = UDim2.new(0, 0, 0, 105)
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.Text = "UBB | LONG HOANG"
 TitleLabel.TextColor3 = Color3.fromRGB(0, 170, 255)
 TitleLabel.TextScaled = true
 TitleLabel.TextWrapped = true
 
--- Function tạo nút đẹp + animation
-local function CreateButton(parent, text, positionY)
+-- Hàm tạo nút đẹp + hiệu ứng giữ
+local function CreateButton(parent, text, posY, callback)
     local Button = Instance.new("TextButton")
     Button.Parent = parent
     Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     Button.BackgroundTransparency = 0.1
-    Button.Position = UDim2.new(0, 0, positionY, 0)
-    Button.Size = UDim2.new(1, 0, 0.2, 0)
+    Button.Position = UDim2.new(0, 0, 0, posY)
+    Button.Size = UDim2.new(1, 0, 0, 45)
     Button.Font = Enum.Font.GothamBold
     Button.Text = text
     Button.TextColor3 = Color3.fromRGB(255, 255, 255)
     Button.TextScaled = true
     Button.AutoButtonColor = false
-    
+
     local UICornerBtn = Instance.new("UICorner")
     UICornerBtn.CornerRadius = UDim.new(0,8)
     UICornerBtn.Parent = Button
@@ -83,29 +99,92 @@ local function CreateButton(parent, text, positionY)
     UIStrokeBtn.Parent = Button
     UIStrokeBtn.Color = Color3.fromRGB(0,170,255)
     UIStrokeBtn.Thickness = 1
-    
-    -- Hiệu ứng nhấn nút
+
+    -- Hiệu ứng giữ nút
+    Button.MouseButton1Down:Connect(function()
+        Button.BackgroundColor3 = Color3.fromRGB(255,0,0)
+    end)
+    Button.MouseButton1Up:Connect(function()
+        TweenService:Create(Button,TweenInfo.new(0.5),{BackgroundColor3 = Color3.fromRGB(50,50,50)}):Play()
+    end)
+
+    -- Khi click
     Button.MouseButton1Click:Connect(function()
-        local origColor = Button.BackgroundColor3
-        Button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-        task.wait(0.2)
-        Button.BackgroundColor3 = origColor
+        callback()
+        -- Auto-hide menu sau khi bấm
+        TweenService:Create(MenuFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        task.wait(0.3)
+        MenuFrame.Visible = false
     end)
 
     return Button
 end
 
--- 4 nút
-local GPButton   = CreateButton(MenuFrame, "UTTVM[GP]", 0.18)
-local G4Button   = CreateButton(MenuFrame, "G4.0[GP]", 0.38)
-local X18Button  = CreateButton(MenuFrame, "X18", 0.58)
-local JuggyButton= CreateButton(MenuFrame, "JUGGY", 0.78)
+-- Danh sách nút
+local rs = game:GetService("ReplicatedStorage").UIRemotes
+local Buttons = {
+    {Name="UTTVM[GP]", Code=function()
+        rs.Craft:FireServer("Upgraded Giant Screenman",{Coins=1})
+    end},
 
--- Toggle Menu với animation Fade
+    {Name="G4.0[GP]", Code=function()
+        local shards = player:WaitForChild("Shards")
+        rs.Evolve:FireServer("GManBathroom",0.1,shards)
+        rs.Evolve:FireServer("GManBathroom2",0.1,shards)
+        rs.Evolve:FireServer("GManBathroom3",0.1,shards)
+    end},
+
+    {Name="X18", Code=function()
+        rs.Craft:FireServer("X18GMan",{Coins=1})
+    end},
+
+    {Name="JUGGY", Code=function()
+        rs.Craft:FireServer("AstroJuggernaut",{Coins=1})
+    end},
+
+    {Name="MAFIA[GIANT]", Code=function()
+        local shards = player:WaitForChild("Shards")
+        rs.Evolve:FireServer("MafiaBathroomV2",0.1,shards)
+    end},
+
+    {Name="EMPEROR", Code=function()
+        rs.Craft:FireServer("BathroomEmperorGiant",{Coins=1})
+    end},
+
+    {Name="UTCM[GP]", Code=function()
+        rs.Craft:FireServer("Upgraded Giant Lensman",{Coins=1})
+    end},
+
+    {Name="FULL UPG UTCM", Code=function()
+        local ids = {"100","101","102","103","104","105","106","107","108"}
+        for _,id in ipairs(ids) do
+            local args = {"Coins", 1, "Deduct", "skillTree", id}
+            rs["_statChange_"]:FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end},
+}
+
+-- Tạo nút theo danh sách
+local posY = 150
+for _, info in ipairs(Buttons) do
+    CreateButton(ScrollFrame, info.Name, posY, info.Code)
+    posY = posY + 50
+end
+
+-- Toggle menu với animation Fade
 local MenuOpen = false
 OpenButton.MouseButton1Click:Connect(function()
     MenuOpen = not MenuOpen
     if MenuOpen then
+        MenuFrame.Visible = true
+        TweenService:Create(MenuFrame, TweenInfo.new(0.3), {BackgroundTransparency = 0.2}):Play()
+    else
+        TweenService:Create(MenuFrame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+        task.wait(0.3)
+        MenuFrame.Visible = false
+    end
+end)
         MenuFrame.Visible = true
         TweenService:Create(MenuFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
             {BackgroundTransparency = 0.2}):Play()
