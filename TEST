@@ -1,0 +1,144 @@
+-- Script Name: UBB | LONG HOANG (Mobile Pro UI v8)
+local player = game:GetService("Players").LocalPlayer
+local TweenService = game:GetService("TweenService")
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Floating Circle Button
+local OpenButton = Instance.new("TextButton")
+OpenButton.Parent = ScreenGui
+OpenButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+OpenButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenButton.Font = Enum.Font.GothamBold
+OpenButton.Text = "UBB"
+OpenButton.TextScaled = true
+OpenButton.Size = UDim2.new(0, 60, 0, 60)
+OpenButton.Position = UDim2.new(0.05, 0, 0.4, 0)
+OpenButton.Active = true
+OpenButton.Draggable = true
+OpenButton.BorderSizePixel = 0
+
+-- Bo góc tròn
+local UICornerOpen = Instance.new("UICorner")
+UICornerOpen.CornerRadius = UDim.new(1,0)
+UICornerOpen.Parent = OpenButton
+
+-- Menu Frame
+local MenuFrame = Instance.new("Frame")
+MenuFrame.Parent = ScreenGui
+MenuFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MenuFrame.BackgroundTransparency = 1
+MenuFrame.Size = UDim2.new(0, 200, 0, 280) -- tăng chiều cao cho 4 nút
+MenuFrame.Position = UDim2.new(0.05, 0, 0.45, 0)
+MenuFrame.Visible = false
+MenuFrame.Active = true
+MenuFrame.Draggable = true
+MenuFrame.BorderSizePixel = 0
+
+-- Bo góc menu
+local UICornerFrame = Instance.new("UICorner")
+UICornerFrame.CornerRadius = UDim.new(0,12)
+UICornerFrame.Parent = MenuFrame
+
+-- Viền sáng
+local UIStrokeFrame = Instance.new("UIStroke")
+UIStrokeFrame.Parent = MenuFrame
+UIStrokeFrame.Color = Color3.fromRGB(0,170,255)
+UIStrokeFrame.Thickness = 1
+
+-- Script Name Label
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Parent = MenuFrame
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Size = UDim2.new(1, 0, 0.18, 0)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "UBB | LONG HOANG"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 170, 255)
+TitleLabel.TextScaled = true
+TitleLabel.TextWrapped = true
+
+-- Function tạo nút đẹp + animation
+local function CreateButton(parent, text, positionY)
+    local Button = Instance.new("TextButton")
+    Button.Parent = parent
+    Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Button.BackgroundTransparency = 0.1
+    Button.Position = UDim2.new(0, 0, positionY, 0)
+    Button.Size = UDim2.new(1, 0, 0.2, 0)
+    Button.Font = Enum.Font.GothamBold
+    Button.Text = text
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextScaled = true
+    Button.AutoButtonColor = false
+    
+    local UICornerBtn = Instance.new("UICorner")
+    UICornerBtn.CornerRadius = UDim.new(0,8)
+    UICornerBtn.Parent = Button
+
+    local UIStrokeBtn = Instance.new("UIStroke")
+    UIStrokeBtn.Parent = Button
+    UIStrokeBtn.Color = Color3.fromRGB(0,170,255)
+    UIStrokeBtn.Thickness = 1
+    
+    -- Hiệu ứng nhấn nút
+    Button.MouseButton1Click:Connect(function()
+        local origColor = Button.BackgroundColor3
+        Button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        task.wait(0.2)
+        Button.BackgroundColor3 = origColor
+    end)
+
+    return Button
+end
+
+-- 4 nút
+local GPButton   = CreateButton(MenuFrame, "UTTVM[GP]", 0.18)
+local G4Button   = CreateButton(MenuFrame, "G4.0[GP]", 0.38)
+local X18Button  = CreateButton(MenuFrame, "X18", 0.58)
+local JuggyButton= CreateButton(MenuFrame, "JUGGY", 0.78)
+
+-- Toggle Menu với animation Fade
+local MenuOpen = false
+OpenButton.MouseButton1Click:Connect(function()
+    MenuOpen = not MenuOpen
+    if MenuOpen then
+        MenuFrame.Visible = true
+        TweenService:Create(MenuFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {BackgroundTransparency = 0.2}):Play()
+    else
+        TweenService:Create(MenuFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {BackgroundTransparency = 1}):Play()
+        task.wait(0.3)
+        MenuFrame.Visible = false
+    end
+end)
+
+-- UTTVM[GP]
+GPButton.MouseButton1Click:Connect(function()
+    local args = { "Upgraded Giant Screenman", { Coins = 1 } }
+    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Craft"):FireServer(unpack(args))
+end)
+
+-- G4.0[GP]
+G4Button.MouseButton1Click:Connect(function()
+    local shards = player:WaitForChild("Shards")
+    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Evolve"):FireServer("GManBathroom", 0.1, shards)
+    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Evolve"):FireServer("GManBathroom2", 0.1, shards)
+    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Evolve"):FireServer("GManBathroom3", 0.1, shards)
+end)
+
+-- X18
+X18Button.MouseButton1Click:Connect(function()
+    local args = { "X18GMan", { Coins = 1 } }
+    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Craft"):FireServer(unpack(args))
+end)
+
+-- JUGGY
+JuggyButton.MouseButton1Click:Connect(function()
+    local args = { "AstroJuggernaut", { Coins = 1000 } }
+    game:GetService("ReplicatedStorage"):WaitForChild("UIRemotes"):WaitForChild("Craft"):FireServer(unpack(args))
+end)
