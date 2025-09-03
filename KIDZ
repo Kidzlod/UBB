@@ -1,6 +1,8 @@
--- FULL: DHL - UBB (UI + AllChar + Hitbox + ESP + Delete + Console)
--- Rainbow border/title, tabs Main/Setting
+-- DHL - UBB (FULL) 
+-- UI (PlayerGui) + AllChar + Hitbox + ESP + Delete Night/Rain + Console + Rainbow border + Settings
+-- Mobile-safe, toggles, textbox applies immediately
 
+-- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -8,36 +10,45 @@ local UIS = game:GetService("UserInputService")
 local LP = Players.LocalPlayer
 local PlayerGui = LP:WaitForChild("PlayerGui")
 
--- Safe remotes lookup
+-- Look for remotes safely
 local UIRemotes = ReplicatedStorage:FindFirstChild("UIRemotes")
 local AstroPurchase = UIRemotes and UIRemotes:FindFirstChild("AstroPurchase")
 local CraftRemote = UIRemotes and UIRemotes:FindFirstChild("Craft")
 
--- States / defaults
+-- Global state defaults
 _G.HeadSize = tonumber(_G.HeadSize) or 100
 _G.HitboxEnabled = _G.HitboxEnabled or false
 _G.ESP_Enabled = _G.ESP_Enabled or false
 _G.ESP_Color = _G.ESP_Color or Color3.fromRGB(0,255,0)
 
--- Create ScreenGui
+-- Helper: safe pcall AddLog later (console)
+local function safeFire(remote, ...)
+    if not remote then return false, "remote nil" end
+    local ok, err = pcall(function() remote:FireServer(...) end)
+    return ok, err
+end
+
+-- ScreenGui root
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DHL_UBB_UI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
+ScreenGui.IgnoreGuiInset = true
 
--- Floating ON/OFF button
+-- Floating toggle button
 local toggleBtn = Instance.new("TextButton", ScreenGui)
-toggleBtn.Size = UDim2.new(0, 66, 0, 36)
-toggleBtn.Position = UDim2.new(0.03,0,0.42,0)
+toggleBtn.Name = "ToggleMenu"
+toggleBtn.Size = UDim2.new(0, 68, 0, 36)
+toggleBtn.Position = UDim2.new(0.03,0,0.38,0)
 toggleBtn.Text = "MENU"
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.TextSize = 15
-toggleBtn.BackgroundColor3 = Color3.fromRGB(25,25,25)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(28,28,28)
 toggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,10)
 toggleBtn.AutoButtonColor = true
 toggleBtn.Active = true
 toggleBtn.Draggable = true
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0,10)
 
 -- Main window
 local main = Instance.new("Frame", ScreenGui)
@@ -47,10 +58,14 @@ main.Position = UDim2.new(0.18, 0, 0.12, 0)
 main.BackgroundColor3 = Color3.fromRGB(12,12,12)
 main.BorderSizePixel = 0
 main.Visible = false
+main.Active = true
+main.Draggable = true
 Instance.new("UICorner", main).CornerRadius = UDim.new(0,12)
-local stroke = Instance.new("UIStroke", main) stroke.Thickness = 3 stroke.Color = Color3.fromRGB(0,170,255)
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 3
+stroke.Color = Color3.fromRGB(0,170,255)
 
--- Title + rainbow text
+-- Title (rainbow text)
 local title = Instance.new("TextLabel", main)
 title.Size = UDim2.new(1, -20, 0, 36)
 title.Position = UDim2.new(0, 10, 0, 6)
@@ -61,7 +76,7 @@ title.Text = "DHL - UBB"
 title.TextColor3 = Color3.fromRGB(255,255,255)
 title.TextXAlignment = Enum.TextXAlignment.Left
 
--- rainbow loop for stroke + title
+-- Rainbow loop for stroke + title
 task.spawn(function()
     local t = 0
     while task.wait(0.05) do
@@ -80,7 +95,10 @@ local tabBar = Instance.new("Frame", main)
 tabBar.Size = UDim2.new(1, -20, 0, 36)
 tabBar.Position = UDim2.new(0, 10, 0, 48)
 tabBar.BackgroundTransparency = 1
-local tLayout = Instance.new("UIListLayout", tabBar) tLayout.FillDirection = Enum.FillDirection.Horizontal tLayout.Padding = UDim.new(0,8) tLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+local tLayout = Instance.new("UIListLayout", tabBar)
+tLayout.FillDirection = Enum.FillDirection.Horizontal
+tLayout.Padding = UDim.new(0,8)
+tLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 
 local function newTab(name)
     local b = Instance.new("TextButton", tabBar)
@@ -95,32 +113,23 @@ local function newTab(name)
 end
 
 local tabMain = newTab("Main")
-local tabESP = newTab("ESP")
 local tabSet = newTab("Setting")
 
--- Content area
-local content = Instance.new("Frame", main)
+-- Content area (scrollable)
+local content = Instance.new("ScrollingFrame", main)
+content.Name = "Content"
 content.Size = UDim2.new(1, -20, 1, -110)
 content.Position = UDim2.new(0, 10, 0, 92)
 content.BackgroundTransparency = 1
-local contentLayout = Instance.new("UIListLayout", content) contentLayout.Padding = UDim.new(0,8) contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+content.ScrollBarThickness = 6
+content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local contentList = Instance.new("UIListLayout", content)
+contentList.Padding = UDim.new(0,8)
+contentList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Helper create button in content
-local function createButton(text)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 40)
-    b.BackgroundColor3 = Color3.fromRGB(32,32,32)
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 15
-    b.TextColor3 = Color3.fromRGB(255,255,255)
-    b.Text = text
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
-    b.Parent = content
-    return b
-end
-
--- Console (separate window)
+-- Console window (separate)
 local console = Instance.new("Frame", ScreenGui)
+console.Name = "DHL_Console"
 console.Size = UDim2.new(0, 420, 0, 220)
 console.Position = UDim2.new(0.55, 0, 0.12, 0)
 console.BackgroundColor3 = Color3.fromRGB(10,10,10)
@@ -143,7 +152,6 @@ conClear.TextSize = 13
 conClear.BackgroundColor3 = Color3.fromRGB(40,40,40)
 conClear.TextColor3 = Color3.fromRGB(255,255,255)
 Instance.new("UICorner", conClear).CornerRadius = UDim.new(0,8)
-
 local conScroll = Instance.new("ScrollingFrame", console)
 conScroll.Size = UDim2.new(1, -16, 1, -56)
 conScroll.Position = UDim2.new(0, 8, 0, 44)
@@ -161,7 +169,6 @@ local function AddLog(text)
     t.TextColor3 = Color3.fromRGB(200,200,200)
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.Text = text
-    -- auto scroll to bottom
     task.delay(0.05, function() conScroll.CanvasPosition = Vector2.new(0, conScroll.AbsoluteCanvasSize.Y) end)
 end
 
@@ -172,18 +179,168 @@ conClear.MouseButton1Click:Connect(function()
     end
 end)
 
--- ----------------------------
--- Main tab controls (All Char / Delete)
--- ----------------------------
-local btnAllChar = createButton("ALL CHAR")
-local btnDeleteNR = createButton("Delete Night/Rain")
+-- UI helpers
+local function createButton(text, order)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 40)
+    b.BackgroundColor3 = Color3.fromRGB(32,32,32)
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 15
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.Text = text
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+    if order then b.LayoutOrder = order end
+    b.Parent = content
+    return b
+end
 
+local function createLabel(text, order)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1,0,0,28)
+    l.BackgroundTransparency = 1
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 14
+    l.TextColor3 = Color3.fromRGB(220,220,220)
+    l.Text = text
+    if order then l.LayoutOrder = order end
+    l.Parent = content
+    return l
+end
+
+local function createTextbox(default, order)
+    local tb = Instance.new("TextBox")
+    tb.Size = UDim2.new(1,0,0,36)
+    tb.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    tb.TextColor3 = Color3.fromRGB(255,255,255)
+    tb.Font = Enum.Font.Gotham
+    tb.TextSize = 15
+    tb.Text = tostring(default)
+    tb.ClearTextOnFocus = false
+    Instance.new("UICorner", tb).CornerRadius = UDim.new(0,8)
+    if order then tb.LayoutOrder = order end
+    tb.Parent = content
+    return tb
+end
+
+local function createToggle(labelText, initial, order, onToggle)
+    local holder = Instance.new("Frame")
+    holder.Size = UDim2.new(1,0,0,36)
+    holder.BackgroundTransparency = 1
+    if order then holder.LayoutOrder = order end
+    holder.Parent = content
+
+    local label = Instance.new("TextLabel", holder)
+    label.Size = UDim2.new(1,-100,1,0)
+    label.Position = UDim2.new(0,8,0,0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 15
+    label.TextColor3 = Color3.fromRGB(230,230,230)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = labelText
+
+    local btn = Instance.new("TextButton", holder)
+    btn.Size = UDim2.new(0,84,0,30)
+    btn.Position = UDim2.new(1,-92,0.5,-15)
+    btn.BackgroundColor3 = initial and Color3.fromRGB(0,170,100) or Color3.fromRGB(70,70,70)
+    btn.Text = initial and "ON" or "OFF"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
+
+    local state = initial
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = state and "ON" or "OFF"
+        btn.BackgroundColor3 = state and Color3.fromRGB(0,170,100) or Color3.fromRGB(70,70,70)
+        if onToggle then pcall(onToggle, state) end
+    end)
+    return function() return state end, function(s)
+        state = s and true or false
+        btn.Text = state and "ON" or "OFF"
+        btn.BackgroundColor3 = state and Color3.fromRGB(0,170,100) or Color3.fromRGB(70,70,70)
+        if onToggle then pcall(onToggle, state) end
+    end
+end
+
+-- ================
+-- Build Main tab content
+-- ================
+local lblMain = createLabel("Main Controls", 1)
+local btnAllChar = createButton("ALL CHAR", 2)
+local btnDeleteNR = createButton("Delete Night/Rain", 3)
+local btnToggleConsole = createButton("Toggle Console (Logs)", 4)
+
+-- ================
+-- Build Setting tab content
+-- ================
+local lblSet = createLabel("Settings", 100)
+-- Textbox for HeadSize (applies immediately)
+local tbHead = createTextbox(_G.HeadSize, 101)
+tbHead.PlaceholderText = "Hitbox Size (e.g. 100)"
+
+-- Toggles: Hitbox + ESP
+local getHitboxState, setHitboxState = createToggle("Hitbox (expand other players' HRP)", _G.HitboxEnabled, 102, function(s)
+    _G.HitboxEnabled = s
+    AddLog("[Hitbox] "..(s and "ON" or "OFF"))
+end)
+local getESPState, setESPState = createToggle("ESP (Name | HP | Distance)", _G.ESP_Enabled, 103, function(s)
+    _G.ESP_Enabled = s
+    AddLog("[ESP] "..(s and "ON" or "OFF"))
+end)
+
+local btnInc = createButton("+50 Hitbox", 104)
+local btnDec = createButton("-50 Hitbox", 105)
+local btnColorCycle = createButton("ESP Color: Cycle", 106)
+
+-- Color cycle for ESP
+local colorCycle = {
+    Color3.fromRGB(0,255,0),
+    Color3.fromRGB(0,170,255),
+    Color3.fromRGB(255,200,0),
+    Color3.fromRGB(255,80,80),
+    Color3.fromRGB(255,0,255)
+}
+local colorIndex = 1
+btnColorCycle.MouseButton1Click:Connect(function()
+    colorIndex = colorIndex % #colorCycle + 1
+    _G.ESP_Color = colorCycle[colorIndex]
+    AddLog(string.format("[ESP] Color set to (%d,%d,%d)", _G.ESP_Color.R*255, _G.ESP_Color.G*255, _G.ESP_Color.B*255))
+end)
+
+-- Textbox immediate apply
+tbHead.FocusLost:Connect(function(enter)
+    if enter then
+        local n = tonumber(tbHead.Text)
+        if n and n >= 10 and n <= 5000 then
+            _G.HeadSize = n
+            AddLog("[Hitbox] Size set to "..tostring(_G.HeadSize))
+        else
+            tbHead.Text = tostring(_G.HeadSize)
+            AddLog("[Hitbox] Invalid size, kept "..tostring(_G.HeadSize))
+        end
+    end
+end)
+
+btnInc.MouseButton1Click:Connect(function()
+    _G.HeadSize = math.clamp((_G.HeadSize or 100) + 50, 10, 5000)
+    tbHead.Text = tostring(_G.HeadSize)
+    AddLog("[Hitbox] Size = "..tostring(_G.HeadSize))
+end)
+btnDec.MouseButton1Click:Connect(function()
+    _G.HeadSize = math.clamp((_G.HeadSize or 100) - 50, 10, 5000)
+    tbHead.Text = tostring(_G.HeadSize)
+    AddLog("[Hitbox] Size = "..tostring(_G.HeadSize))
+end)
+
+-- Wire main buttons
 btnAllChar.MouseButton1Click:Connect(function()
     task.spawn(function()
         local ok, err = pcall(function()
             local mainUI = LP.PlayerGui:FindFirstChild("MainUI")
-            if not mainUI then AddLog("[AllChar] MainUI not found"); return end
-            -- try path: StoreFrame -> Content -> Passes -> Content -> Left
+            if not mainUI then AddLog("[AllChar] MainUI not found") return end
+            -- Find Left path: StoreFrame -> Content -> Passes -> Content -> Left
             local left
             local store = mainUI:FindFirstChild("StoreFrame")
             if store then
@@ -198,37 +355,35 @@ btnAllChar.MouseButton1Click:Connect(function()
                     end
                 end
             end
-            if not left then AddLog("[AllChar] Left not found in PlayerGui.MainUI"); end
+            if not left then AddLog("[AllChar] Left not found in PlayerGui.MainUI") end
 
-            if AstroPurchase and CraftRemote then
-                if left then
-                    for _,v in ipairs(left:GetChildren()) do
-                        if v:IsA("TextButton") or v:IsA("ImageButton") or v:IsA("Frame") then
-                            local nm = v.Name
-                            pcall(function() AstroPurchase:FireServer(nm, 0.001) end)
-                            AddLog("[AllChar] AstroPurchase: "..tostring(nm))
-                            pcall(function() CraftRemote:FireServer(nm, {Coins=1}) end)
-                            AddLog("[AllChar] Craft: "..tostring(nm))
-                            task.wait(0.08)
-                        end
-                    end
-                end
+            if not AstroPurchase or not CraftRemote then AddLog("[AllChar] AstroPurchase/Craft remote missing"); return end
 
-                local morph = ReplicatedStorage:FindFirstChild("Morphshow") or ReplicatedStorage:FindFirstChild("MorphShow")
-                if morph then
-                    for _,m in ipairs(morph:GetChildren()) do
-                        local nm = m.Name
+            if left then
+                for _,v in ipairs(left:GetChildren()) do
+                    if v:IsA("TextButton") or v:IsA("ImageButton") or v:IsA("Frame") then
+                        local nm = v.Name
                         pcall(function() AstroPurchase:FireServer(nm, 0.001) end)
                         AddLog("[AllChar] AstroPurchase: "..tostring(nm))
                         pcall(function() CraftRemote:FireServer(nm, {Coins=1}) end)
                         AddLog("[AllChar] Craft: "..tostring(nm))
                         task.wait(0.08)
                     end
-                else
-                    AddLog("[AllChar] Morphshow not found in ReplicatedStorage")
+                end
+            end
+
+            local morph = ReplicatedStorage:FindFirstChild("Morphshow") or ReplicatedStorage:FindFirstChild("MorphShow")
+            if morph then
+                for _,m in ipairs(morph:GetChildren()) do
+                    local nm = m.Name
+                    pcall(function() AstroPurchase:FireServer(nm, 0.001) end)
+                    AddLog("[AllChar] AstroPurchase: "..tostring(nm))
+                    pcall(function() CraftRemote:FireServer(nm, {Coins=1}) end)
+                    AddLog("[AllChar] Craft: "..tostring(nm))
+                    task.wait(0.08)
                 end
             else
-                AddLog("[AllChar] AstroPurchase/Craft remote missing")
+                AddLog("[AllChar] Morphshow not found in ReplicatedStorage")
             end
         end)
         if not ok then AddLog("[AllChar][ERROR] "..tostring(err)) end
@@ -246,28 +401,47 @@ btnDeleteNR.MouseButton1Click:Connect(function()
     if not ok then AddLog("[Delete][ERROR] "..tostring(err)) end
 end)
 
--- ----------------------------
--- ESP tab
--- ----------------------------
-local btnESPtoggle = createButton("ESP ON/OFF (Tên|HP|Dist)")
-local btnColorCycle = createButton("ESP Color: Cycle")
-
-local colorCycle = {
-    Color3.fromRGB(0,255,0),
-    Color3.fromRGB(0,170,255),
-    Color3.fromRGB(255,200,0),
-    Color3.fromRGB(255,80,80),
-    Color3.fromRGB(255,0,255)
-}
-local idxColor = 1
-btnColorCycle.MouseButton1Click:Connect(function()
-    idxColor = idxColor % #colorCycle + 1
-    _G.ESP_Color = colorCycle[idxColor]
-    AddLog(string.format("[ESP] Color set to (%d,%d,%d)", _G.ESP_Color.R*255, _G.ESP_Color.G*255, _G.ESP_Color.B*255))
+btnToggleConsole.MouseButton1Click:Connect(function()
+    console.Visible = not console.Visible
 end)
 
-local espConns = {}
-local function ensureESPForPlayer(plr)
+-- TAB switching
+tabMain.MouseButton1Click:Connect(function()
+    -- Scroll to top to show main section easily
+    content.CanvasPosition = Vector2.new(0,0)
+    AddLog("[TAB] Main")
+end)
+tabSet.MouseButton1Click:Connect(function()
+    content.CanvasPosition = Vector2.new(0, content.CanvasPosition.Y) -- keep pos
+    AddLog("[TAB] Setting")
+end)
+
+-- Toggle main UI
+toggleBtn.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+end)
+
+-- Hitbox runtime: apply immediately when enabled
+RunService.RenderStepped:Connect(function()
+    if _G.HitboxEnabled then
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                pcall(function()
+                    local hrp = p.Character.HumanoidRootPart
+                    hrp.Size = Vector3.new(_G.HeadSize,_G.HeadSize,_G.HeadSize)
+                    hrp.Transparency = 0.7
+                    hrp.BrickColor = BrickColor.new("Really blue")
+                    hrp.Material = Enum.Material.Neon
+                    hrp.CanCollide = false
+                end)
+            end
+        end
+    end
+end)
+
+-- ESP system: BillboardGui on head showing Name | HP | Distance
+local espConnections = {}
+local function attachESPToPlayer(plr)
     if plr == LP then return end
     local function build(ch)
         if not ch then return end
@@ -292,9 +466,8 @@ local function ensureESPForPlayer(plr)
         lab.TextStrokeTransparency = 0.5
         lab.TextColor3 = _G.ESP_Color
 
-        -- update loop
-        espConns[plr] = espConns[plr] or {}
-        table.insert(espConns[plr], RunService.RenderStepped:Connect(function()
+        espConnections[plr] = espConnections[plr] or {}
+        table.insert(espConnections[plr], RunService.RenderStepped:Connect(function()
             if not _G.ESP_Enabled or not plr.Character or not plr.Character.Parent then
                 gui.Enabled = false
                 return
@@ -313,133 +486,28 @@ local function ensureESPForPlayer(plr)
     plr.CharacterAdded:Connect(function(ch) task.wait(0.06); build(ch) end)
 end
 
-btnESPtoggle.MouseButton1Click:Connect(function()
-    _G.ESP_Enabled = not _G.ESP_Enabled
-    AddLog("[ESP] "..(_G.ESP_Enabled and "ON" or "OFF"))
-    if _G.ESP_Enabled then
-        for _,p in ipairs(Players:GetPlayers()) do ensureESPForPlayer(p) end
-    else
-        -- disable visuals (BillboardGui stays but will be set disabled by loops)
-    end
-end)
+for _,p in ipairs(Players:GetPlayers()) do attachESPToPlayer(p) end
+Players.PlayerAdded:Connect(attachESPToPlayer)
 
-Players.PlayerAdded:Connect(function(p) ensureESPForPlayer(p) end)
-for _,p in ipairs(Players:GetPlayers()) do ensureESPForPlayer(p) end
+-- When toggles changed earlier, we bound them; but set initial states
+setHitboxState(_G.HitboxEnabled)
+setESPState(_G.ESP_Enabled)
 
--- ----------------------------
--- Hitbox (runtime)
--- ----------------------------
-local hitboxTicker = RunService.RenderStepped:Connect(function()
-    if _G.HitboxEnabled then
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                pcall(function()
-                    local hrp = plr.Character.HumanoidRootPart
-                    hrp.Size = Vector3.new(_G.HeadSize, _G.HeadSize, _G.HeadSize)
-                    hrp.Transparency = 0.7
-                    hrp.BrickColor = BrickColor.new("Really blue")
-                    hrp.Material = Enum.Material.Neon
-                    hrp.CanCollide = false
-                end)
-            end
-        end
-    end
-end)
-
--- ----------------------------
--- Setting tab: Hitbox controls + console toggle
--- ----------------------------
-local hitboxBox = Instance.new("TextBox", content)
-hitboxBox.Size = UDim2.new(1,0,0,40)
-hitboxBox.Text = tostring(_G.HeadSize) -- default 100
-hitboxBox.Font = Enum.Font.SourceSans
-hitboxBox.TextSize = 16
-hitboxBox.ClearTextOnFocus = false
-hitboxBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Instance.new("UICorner", hitboxBox).CornerRadius = UDim.new(0,8)
-
-local btnHitToggle = createButton("Bật/Tắt Hitbox")
-local btnInc = createButton("+50 Hitbox")
-local btnDec = createButton("-50 Hitbox")
-local btnConsoleToggle = createButton("Toggle Console (Logs)")
-
-btnHitToggle.MouseButton1Click:Connect(function()
-    _G.HitboxEnabled = not _G.HitboxEnabled
-    AddLog("[Hitbox] "..(_G.HitboxEnabled and "ON" or "OFF"))
-end)
-btnInc.MouseButton1Click:Connect(function()
-    _G.HeadSize = math.clamp((_G.HeadSize or 100) + 50, 10, 2000)
-    hitboxBox.Text = tostring(_G.HeadSize)
-    AddLog("[Hitbox] Size = "..tostring(_G.HeadSize))
-end)
-btnDec.MouseButton1Click:Connect(function()
-    _G.HeadSize = math.clamp((_G.HeadSize or 100) - 50, 10, 2000)
-    hitboxBox.Text = tostring(_G.HeadSize)
-    AddLog("[Hitbox] Size = "..tostring(_G.HeadSize))
-end)
-
-hitboxBox.FocusLost:Connect(function(enter)
-    if enter then
-        local n = tonumber(hitboxBox.Text)
-        if n then _G.HeadSize = math.clamp(n,10,2000); AddLog("[Hitbox] Size set to ".._G.HeadSize)
-        else hitboxBox.Text = tostring(_G.HeadSize); AddLog("[Hitbox] Invalid size") end
-    end
-end)
-
-btnConsoleToggle.MouseButton1Click:Connect(function()
-    console.Visible = not console.Visible
-end)
-
--- Buttons connect to tabs
-tabMain.MouseButton1Click:Connect(function()
-    -- show main content (we'll show first group of controls)
-    -- Because we used a single 'content' flow, nothing to hide here; tabs are logical for user
-    AddLog("[TAB] Main")
-end)
-
-tabESP.MouseButton1Click:Connect(function()
-    AddLog("[TAB] ESP")
-end)
-
-tabSet.MouseButton1Click:Connect(function()
-    AddLog("[TAB] Setting")
-end)
-
--- Wire main buttons to functionality
-btnAllChar.Parent = content -- ensure parent (already created earlier)
-btnDeleteNR.Parent = content
-btnESPtoggle.Parent = content
-btnColorCycle.Parent = content
-
--- ensure order
-btnAllChar.LayoutOrder = 1
-btnDeleteNR.LayoutOrder = 2
-btnESPtoggle.LayoutOrder = 3
-btnColorCycle.LayoutOrder = 4
-hitboxBox.LayoutOrder = 10
-btnHitToggle.LayoutOrder = 11
-btnInc.LayoutOrder = 12
-btnDec.LayoutOrder = 13
-btnConsoleToggle.LayoutOrder = 14
-
--- Toggle UI visibility
-toggleBtn.MouseButton1Click:Connect(function()
-    main.Visible = not main.Visible
-end)
+AddLog("DHL - UBB FULL loaded. HeadSize="..tostring(_G.HeadSize))
 
 -- Ensure content canvas autosize
-content.CanvasSize = UDim2.new(0,0,0,content.UIListLayout.AbsoluteContentSize.Y + 20)
-content.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    content.CanvasSize = UDim2.new(0,0,0,content.UIListLayout.AbsoluteContentSize.Y + 20)
+content.CanvasSize = UDim2.new(0,0,0,contentList.AbsoluteContentSize.Y + 20)
+contentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    content.CanvasSize = UDim2.new(0,0,0,contentList.AbsoluteContentSize.Y + 20)
 end)
 
--- make console draggable (simple)
+-- Make console draggable (simple)
 do
     local dragging, startPos, dragStart
     console.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = i.Position; startPos = console.Position
-            i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then dragging=false end end)
+            dragging=true; dragStart=i.Position; startPos=console.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false end end)
         end
     end)
     UIS.InputChanged:Connect(function(i)
@@ -450,6 +518,4 @@ do
     end)
 end
 
-AddLog("DHL - UBB loaded (FULL). UI ready.")
-
--- end of script
+-- End of script
