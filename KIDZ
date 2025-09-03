@@ -1,217 +1,190 @@
--- DHL - UBB Hub (Full Script)
--- UI + Main + Setting + ESP + Hitbox Fix (TextBox mặc định = 100)
+-- DHL - UBB Full Script
+-- UI Đen + Viền 7 màu đổi liên tục
+-- Menu có thể di chuyển, có nút ON/OFF, đủ tính năng
 
---// Services
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+--// Khởi tạo UI
+local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
-
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local UDim2_new, Instance_new = UDim2.new, Instance.new
 
---// Global Vars
-_G.HeadSize = 100
-_G.HitboxEnabled = false
-_G.ESPEnabled = false
+-- Xóa UI cũ nếu có
+if CoreGui:FindFirstChild("DHL_UBB_UI") then
+    CoreGui.DHL_UBB_UI:Destroy()
+end
 
---// UI Library
-local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "DHL_UBB"
+local ScreenGui = Instance_new("ScreenGui")
+ScreenGui.Name = "DHL_UBB_UI"
+ScreenGui.Parent = CoreGui
 
--- Main frame
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 300, 0, 400)
-MainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
+-- Nút mở menu
+local ToggleButton = Instance_new("TextButton")
+ToggleButton.Text = "MENU"
+ToggleButton.Size = UDim2_new(0, 80, 0, 35)
+ToggleButton.Position = UDim2_new(0, 20, 0.2, 0)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextSize = 20
+ToggleButton.Parent = ScreenGui
+ToggleButton.ZIndex = 5
+
+-- Frame chính
+local MainFrame = Instance_new("Frame")
+MainFrame.Size = UDim2_new(0, 380, 0, 300)
+MainFrame.Position = UDim2_new(0.5, -190, 0.5, -150)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+-- Viền 7 màu đổi liên tục
+local UICorner = Instance_new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 12)
+
+local UIStroke = Instance_new("UIStroke", MainFrame)
+UIStroke.Thickness = 3
+UIStroke.Color = Color3.fromRGB(255, 0, 0)
+
+task.spawn(function()
+    local hue = 0
+    while task.wait(0.05) do
+        hue = (hue + 1) % 255
+        UIStroke.Color = Color3.fromHSV(hue/255, 1, 1)
+    end
+end)
+
+-- Kéo thả menu
+local dragging, dragInput, dragStart, startPos
 MainFrame.Active = true
 MainFrame.Draggable = true
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 
--- Rainbow border effect
-local UIStroke = Instance.new("UIStroke", MainFrame)
-UIStroke.Thickness = 3
-UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-task.spawn(function()
-    while task.wait() do
-        for i = 0, 1, 0.01 do
-            UIStroke.Color = Color3.fromHSV(i, 1, 1)
-            task.wait(0.05)
-        end
-    end
-end)
+-- Nút bật/tắt menu chính
+local function toggleMenu()
+    MainFrame.Visible = not MainFrame.Visible
+end
+ToggleButton.MouseButton1Click:Connect(toggleMenu)
 
 -- Title
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "DHL - UBB"
+local Title = Instance_new("TextLabel")
+Title.Size = UDim2_new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "DHL - UBB"
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 20
-
--- Tabs container
-local TabButtons = Instance.new("Frame", MainFrame)
-TabButtons.Size = UDim2.new(1, 0, 0, 40)
-TabButtons.Position = UDim2.new(0, 0, 0, 40)
-TabButtons.BackgroundTransparency = 1
-
-local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, -20, 1, -100)
-ContentFrame.Position = UDim2.new(0, 10, 0, 90)
-ContentFrame.BackgroundTransparency = 1
-
--- UI pages
-local Pages = {}
-
-local function CreatePage(name)
-    local page = Instance.new("ScrollingFrame", ContentFrame)
-    page.Size = UDim2.new(1, 0, 1, 0)
-    page.Visible = false
-    page.ScrollBarThickness = 6
-    page.Name = name
-    Pages[name] = page
-    return page
-end
-
-local function SwitchPage(name)
-    for _, pg in pairs(Pages) do
-        pg.Visible = false
-    end
-    if Pages[name] then
-        Pages[name].Visible = true
-    end
-end
-
--- Tab buttons
-local function CreateTabButton(name)
-    local btn = Instance.new("TextButton", TabButtons)
-    btn.Size = UDim2.new(0, 100, 1, 0)
-    btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 16
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-    btn.MouseButton1Click:Connect(function()
-        SwitchPage(name)
-    end)
-    return btn
-end
-
--- Create Pages
-local MainPage = CreatePage("Main")
-local SettingPage = CreatePage("Setting")
+Title.TextSize = 22
+Title.Parent = MainFrame
 
 -- Tabs
-local mainBtn = CreateTabButton("Main")
-local setBtn = CreateTabButton("Setting")
-setBtn.Position = UDim2.new(0, 110, 0, 0)
+local TabButtons = Instance_new("Frame", MainFrame)
+TabButtons.Size = UDim2_new(1, 0, 0, 35)
+TabButtons.Position = UDim2_new(0, 0, 0, 40)
+TabButtons.BackgroundTransparency = 1
 
--- Default page
-SwitchPage("Main")
+local MainTab = Instance_new("TextButton", TabButtons)
+MainTab.Size = UDim2_new(0.5, -2, 1, 0)
+MainTab.Position = UDim2_new(0, 0, 0, 0)
+MainTab.Text = "Main"
+MainTab.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainTab.TextColor3 = Color3.fromRGB(255, 255, 255)
 
---// MAIN TAB: All Char + ESP Toggle
-local allCharBtn = Instance.new("TextButton", MainPage)
-allCharBtn.Size = UDim2.new(1, -10, 0, 40)
-allCharBtn.Position = UDim2.new(0, 5, 0, 10)
-allCharBtn.Text = "ALL CHAR"
-allCharBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-allCharBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", allCharBtn).CornerRadius = UDim.new(0, 8)
+local SettingTab = Instance_new("TextButton", TabButtons)
+SettingTab.Size = UDim2_new(0.5, -2, 1, 0)
+SettingTab.Position = UDim2_new(0.5, 2, 0, 0)
+SettingTab.Text = "Setting"
+SettingTab.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SettingTab.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-allCharBtn.MouseButton1Click:Connect(function()
-    local target = LocalPlayer:WaitForChild("PlayerGui")
-        :WaitForChild("MainUI")
-        :WaitForChild("StoreFrame")
-        :WaitForChild("Content")
-        :WaitForChild("Passes")
-        :WaitForChild("Content")
-        :WaitForChild("Left")
-    for _, obj in pairs(target:GetChildren()) do
-        local args1 = { obj.Name, 0.001 }
-        ReplicatedStorage.UIRemotes.AstroPurchase:FireServer(unpack(args1))
+-- Nội dung Main
+local MainPage = Instance_new("Frame", MainFrame)
+MainPage.Size = UDim2_new(1, -10, 1, -90)
+MainPage.Position = UDim2_new(0, 5, 0, 80)
+MainPage.BackgroundTransparency = 1
 
-        local args2 = { obj.Name, { Coins = 1 } }
-        ReplicatedStorage.UIRemotes.Craft:FireServer(unpack(args2))
-    end
+-- Nút ALL CHAR
+local AllCharBtn = Instance_new("TextButton", MainPage)
+AllCharBtn.Size = UDim2_new(1, 0, 0, 35)
+AllCharBtn.Position = UDim2_new(0, 0, 0, 0)
+AllCharBtn.Text = "ALL CHAR"
+AllCharBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+AllCharBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-    for _, obj in pairs(ReplicatedStorage:WaitForChild("Morphshow"):GetChildren()) do
-        local args1 = { obj.Name, 0.001 }
-        ReplicatedStorage.UIRemotes.AstroPurchase:FireServer(unpack(args1))
+-- Nút Delete Night/Rain
+local DelNRBtn = Instance_new("TextButton", MainPage)
+DelNRBtn.Size = UDim2_new(1, 0, 0, 35)
+DelNRBtn.Position = UDim2_new(0, 0, 0, 45)
+DelNRBtn.Text = "Delete Night/Rain"
+DelNRBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+DelNRBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-        local args2 = { obj.Name, { Coins = 1 } }
-        ReplicatedStorage.UIRemotes.Craft:FireServer(unpack(args2))
-    end
+-- Nội dung Setting
+local SettingPage = Instance_new("Frame", MainFrame)
+SettingPage.Size = UDim2_new(1, -10, 1, -90)
+SettingPage.Position = UDim2_new(0, 5, 0, 80)
+SettingPage.BackgroundTransparency = 1
+SettingPage.Visible = false
+
+-- ESP On/Off
+local ESPBtn = Instance_new("TextButton", SettingPage)
+ESPBtn.Size = UDim2_new(1, 0, 0, 35)
+ESPBtn.Position = UDim2_new(0, 0, 0, 0)
+ESPBtn.Text = "ESP: OFF"
+ESPBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ESPBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Hitbox toggle
+local HitboxBtn = Instance_new("TextButton", SettingPage)
+HitboxBtn.Size = UDim2_new(1, 0, 0, 35)
+HitboxBtn.Position = UDim2_new(0, 0, 0, 45)
+HitboxBtn.Text = "Hitbox: OFF"
+HitboxBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+HitboxBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- TextBox chỉnh hitbox size
+local HitboxBox = Instance_new("TextBox", SettingPage)
+HitboxBox.Size = UDim2_new(1, 0, 0, 35)
+HitboxBox.Position = UDim2_new(0, 0, 0, 90)
+HitboxBox.Text = "100"
+HitboxBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+HitboxBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Tab switching
+MainTab.MouseButton1Click:Connect(function()
+    MainPage.Visible = true
+    SettingPage.Visible = false
+end)
+SettingTab.MouseButton1Click:Connect(function()
+    MainPage.Visible = false
+    SettingPage.Visible = true
 end)
 
-local espBtn = Instance.new("TextButton", MainPage)
-espBtn.Size = UDim2.new(1, -10, 0, 40)
-espBtn.Position = UDim2.new(0, 5, 0, 60)
-espBtn.Text = "ESP: OFF"
-espBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", espBtn).CornerRadius = UDim.new(0, 8)
+--// TÍNH NĂNG CODE
+local espEnabled = false
+local hitboxEnabled = false
+_G.HeadSize = 100
 
-espBtn.MouseButton1Click:Connect(function()
-    _G.ESPEnabled = not _G.ESPEnabled
-    espBtn.Text = _G.ESPEnabled and "ESP: ON" or "ESP: OFF"
+ESPBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    ESPBtn.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
 end)
 
---// SETTING TAB: Hitbox Toggle + Size Box
-local hitboxBtn = Instance.new("TextButton", SettingPage)
-hitboxBtn.Size = UDim2.new(1, -10, 0, 40)
-hitboxBtn.Position = UDim2.new(0, 5, 0, 10)
-hitboxBtn.Text = "Hitbox: OFF"
-hitboxBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-hitboxBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", hitboxBtn).CornerRadius = UDim.new(0, 8)
-
-hitboxBtn.MouseButton1Click:Connect(function()
-    _G.HitboxEnabled = not _G.HitboxEnabled
-    hitboxBtn.Text = _G.HitboxEnabled and "Hitbox: ON" or "Hitbox: OFF"
+HitboxBtn.MouseButton1Click:Connect(function()
+    hitboxEnabled = not hitboxEnabled
+    HitboxBtn.Text = "Hitbox: " .. (hitboxEnabled and "ON" or "OFF")
 end)
 
--- FIXED TextBox
-local hitboxBox = Instance.new("TextBox", SettingPage)
-hitboxBox.Size = UDim2.new(1, -10, 0, 40)
-hitboxBox.Position = UDim2.new(0, 5, 0, 60)
-hitboxBox.Text = tostring(_G.HeadSize) -- mặc định 100
-hitboxBox.Font = Enum.Font.SourceSans
-hitboxBox.TextSize = 16
-hitboxBox.ClearTextOnFocus = false
-hitboxBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-hitboxBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", hitboxBox).CornerRadius = UDim.new(0, 8)
-
-hitboxBox.FocusLost:Connect(function()
-    local num = tonumber(hitboxBox.Text)
-    if num and num > 0 then
-        _G.HeadSize = num
+HitboxBox.FocusLost:Connect(function()
+    local val = tonumber(HitboxBox.Text)
+    if val then
+        _G.HeadSize = val
     else
-        hitboxBox.Text = tostring(_G.HeadSize)
+        HitboxBox.Text = tostring(_G.HeadSize)
     end
 end)
 
--- Delete Night/Rain
-local delBtn = Instance.new("TextButton", SettingPage)
-delBtn.Size = UDim2.new(1, -10, 0, 40)
-delBtn.Position = UDim2.new(0, 5, 0, 110)
-delBtn.Text = "Delete Night/Rain"
-delBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 8)
-
-delBtn.MouseButton1Click:Connect(function()
-    local gfx = ReplicatedStorage:FindFirstChild("Assets"):FindFirstChild("GRAPHIC")
-    if gfx then
-        if gfx:FindFirstChild("night") then gfx.night:Destroy() end
-        if gfx:FindFirstChild("rain") then gfx.rain:Destroy() end
-    end
-end)
-
---// HITBOX LOOP
 RunService.RenderStepped:Connect(function()
-    if _G.HitboxEnabled then
+    if hitboxEnabled then
         for _, v in pairs(Players:GetPlayers()) do
             if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = v.Character.HumanoidRootPart
@@ -225,41 +198,72 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
---// ESP LOOP
-RunService.RenderStepped:Connect(function()
-    if _G.ESPEnabled then
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
-                local head = v.Character.Head
-                if not head:FindFirstChild("DHL_ESP") then
-                    local billboard = Instance.new("BillboardGui", head)
-                    billboard.Name = "DHL_ESP"
-                    billboard.Size = UDim2.new(0, 200, 0, 50)
-                    billboard.Adornee = head
-                    billboard.AlwaysOnTop = true
-
-                    local nameLabel = Instance.new("TextLabel", billboard)
-                    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
-                    nameLabel.BackgroundTransparency = 1
-                    nameLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-                    nameLabel.Text = v.Name
-                    nameLabel.TextScaled = true
-
-                    local distLabel = Instance.new("TextLabel", billboard)
-                    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
-                    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
-                    distLabel.BackgroundTransparency = 1
-                    distLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
-                    distLabel.TextScaled = true
-
-                    RunService.RenderStepped:Connect(function()
-                        if v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - v.Character.HumanoidRootPart.Position).Magnitude
-                            distLabel.Text = string.format("Dist: %.0f", dist)
-                        end
-                    end)
-                end
+-- ESP (Tên, HP, Dist)
+local function createBillboard(plr)
+    if plr.Character and not plr.Character:FindFirstChild("ESPTag") then
+        local bb = Instance_new("BillboardGui", plr.Character:WaitForChild("Head"))
+        bb.Name = "ESPTag"
+        bb.Size = UDim2_new(0,200,0,50)
+        bb.AlwaysOnTop = true
+        local tl = Instance_new("TextLabel", bb)
+        tl.Size = UDim2_new(1,0,1,0)
+        tl.BackgroundTransparency = 1
+        tl.TextColor3 = Color3.new(1,0,0)
+        tl.TextScaled = true
+        RunService.RenderStepped:Connect(function()
+            if espEnabled and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+                local dist = (plr.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+                tl.Text = string.format("%s | HP:%d | Dist:%.0f", plr.Name, plr.Character.Humanoid.Health, dist)
+                tl.Visible = true
+            else
+                tl.Visible = false
             end
+        end)
+    end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        task.wait(1)
+        createBillboard(plr)
+    end)
+end)
+
+for _, plr in pairs(Players:GetPlayers()) do
+    if plr ~= LocalPlayer then
+        createBillboard(plr)
+    end
+end
+
+-- Delete Night/Rain
+DelNRBtn.MouseButton1Click:Connect(function()
+    local g = game:GetService("ReplicatedStorage"):FindFirstChild("Assets")
+    if g and g:FindFirstChild("GRAPHIC") then
+        if g.GRAPHIC:FindFirstChild("Night") then g.GRAPHIC.Night:Destroy() end
+        if g.GRAPHIC:FindFirstChild("Rain") then g.GRAPHIC.Rain:Destroy() end
+    end
+end)
+
+-- ALL CHAR (loop store + morph)
+AllCharBtn.MouseButton1Click:Connect(function()
+    local pg = LocalPlayer:WaitForChild("PlayerGui")
+    local passes = pg:FindFirstChild("MainUI") and pg.MainUI:FindFirstChild("StoreFrame")
+    if passes then
+        for _, obj in pairs(passes:GetDescendants()) do
+            if obj:IsA("TextLabel") then
+                local args = {obj.Text, 0.001}
+                game.ReplicatedStorage.UIRemotes.AstroPurchase:FireServer(unpack(args))
+                local args2 = {obj.Text, {Coins = 1}}
+                game.ReplicatedStorage.UIRemotes.Craft:FireServer(unpack(args2))
+            end
+        end
+    end
+    if game.ReplicatedStorage:FindFirstChild("Morphshow") then
+        for _, obj in pairs(game.ReplicatedStorage.Morphshow:GetChildren()) do
+            local args = {obj.Name, 0.001}
+            game.ReplicatedStorage.UIRemotes.AstroPurchase:FireServer(unpack(args))
+            local args2 = {obj.Name, {Coins = 1}}
+            game.ReplicatedStorage.UIRemotes.Craft:FireServer(unpack(args2))
         end
     end
 end)
